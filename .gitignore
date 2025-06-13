@@ -37,9 +37,9 @@ ENV/
 .venv
 
 # Data files - VERY IMPORTANT
-data/raw/
-data/processed/
 
+
+data/
 results/
 models/
 temp/
