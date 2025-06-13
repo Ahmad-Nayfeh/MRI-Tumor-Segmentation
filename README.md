@@ -48,7 +48,7 @@ pip install -r requirements.txt
 
 This project uses the **BraTS-Africa** dataset, which expands brain tumor segmentation data to include African populations.
 
-📥 **[Download Dataset](https://www.cancerimagingarchive.org/collection/brats-africa/)**
+📥 **[Download Dataset](https://faspex.cancerimagingarchive.net/aspera/faspex/public/package?context=eyJyZXNvdXJjZSI6InBhY2thZ2VzIiwidHlwZSI6ImV4dGVybmFsX2Rvd25sb2FkX3BhY2thZ2UiLCJpZCI6Ijk0OCIsInBhc3Njb2RlIjoiOTg2MzVlMGRmNzc3NWQ0NWJmZTQ2NjlhYzQwNjNmYjcxMjU0MzI1NyIsInBhY2thZ2VfaWQiOiI5NDgiLCJlbWFpbCI6ImhlbHBAY2FuY2VyaW1hZ2luZ2FyY2hpdmUubmV0In0=)**
 
 > **Citation:** Adewole, M., et al. (2024). Expanding the Brain Tumor Segmentation (BraTS) data to include African Populations (BraTS-Africa). *The Cancer Imaging Archive*. https://doi.org/10.7937/v8h6-8×67
 
