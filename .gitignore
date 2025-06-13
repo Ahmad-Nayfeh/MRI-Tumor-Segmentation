@@ -38,12 +38,13 @@ ENV/
 
 # Data files - VERY IMPORTANT
 
-
-data/
+data/raw/
+data/processed/
 results/
 models/
 temp/
 figures/
+images/
 
 # OS-specific files
 .DS_Store
