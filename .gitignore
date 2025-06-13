@@ -40,13 +40,9 @@ ENV/
 data/raw/
 data/processed/
 
-# Model files
-models/
-
-# Results files
 results/
-
-# Large figures and other generated files
+models/
+temp/
 figures/
 
 # OS-specific files
