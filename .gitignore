@@ -41,7 +41,6 @@ ENV/
 data/raw/
 data/processed/
 results/
-models/
 temp/
 figures/
 
