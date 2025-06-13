@@ -1,7 +1,7 @@
 {
-  "sample_1.png": "d:\\Coding\\GitHub\\MRI-Tumor-Segmentation\\data\\processed\\BraTS-SSA-00068-000_slice_065_image.npy",
-  "sample_2.png": "d:\\Coding\\GitHub\\MRI-Tumor-Segmentation\\data\\processed\\BraTS-SSA-00049-000_slice_115_image.npy",
-  "sample_3.png": "d:\\Coding\\GitHub\\MRI-Tumor-Segmentation\\data\\processed\\BraTS-SSA-00149-000_slice_063_image.npy",
-  "sample_4.png": "d:\\Coding\\GitHub\\MRI-Tumor-Segmentation\\data\\processed\\BraTS-SSA-00225-000_slice_096_image.npy",
-  "sample_5.png": "d:\\Coding\\GitHub\\MRI-Tumor-Segmentation\\data\\processed\\BraTS-SSA-00150-000_slice_125_image.npy"
+  "Sample 1": "sample_1_image.npy",
+  "Sample 2": "sample_2_image.npy",
+  "Sample 3": "sample_3_image.npy",
+  "Sample 4": "sample_4_image.npy",
+  "Sample 5": "sample_5_image.npy"
 }

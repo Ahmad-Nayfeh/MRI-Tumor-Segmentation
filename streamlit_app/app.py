@@ -103,8 +103,9 @@ if selection_mode == "Select a Sample Image":
             input_image_path = os.path.join(SAMPLE_IMAGES_DIR, selected_sample)
             input_image = Image.open(input_image_path)
             # *** THE FIX: Use the corresponding .npy path for prediction ***
-            prediction_input = sample_npy_map.get(selected_sample)
-            if prediction_input:
+            npy_filename = sample_npy_map.get(selected_sample.replace('.png', '_image.npy').replace('_display',''))
+            if npy_filename:
+                prediction_input = os.path.join(SAMPLE_IMAGES_DIR, npy_filename)
                 st.sidebar.success(f"✅ Using correct NPY file: {os.path.basename(prediction_input)}")
             else:
                 st.sidebar.error(f"❌ No mapping found for {selected_sample}")
