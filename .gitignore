@@ -45,7 +45,7 @@ models/
 
 # Results (json)
 results/
-
+results.json
 # Large figures and other generated files
 figures/
 
