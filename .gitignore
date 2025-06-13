@@ -44,7 +44,6 @@ results/
 models/
 temp/
 figures/
-images/
 
 # OS-specific files
 .DS_Store
