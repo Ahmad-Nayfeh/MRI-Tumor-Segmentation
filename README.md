@@ -1,4 +1,4 @@
-# AI-Powered MRI Brain Tumor Segmentation
+# 🧠 AI-Powered MRI Brain Tumor Segmentation
 
 > Automated brain tumor segmentation using deep learning to assist medical professionals in faster, more accurate diagnoses.
 
@@ -44,9 +44,17 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+## Dataset
+
+This project uses the **BraTS-Africa** dataset, which expands brain tumor segmentation data to include African populations.
+
+📥 **[Download Dataset](https://www.cancerimagingarchive.org/collection/brats-africa/)**
+
+> **Citation:** Adewole, M., et al. (2024). Expanding the Brain Tumor Segmentation (BraTS) data to include African Populations (BraTS-Africa). *The Cancer Imaging Archive*. https://doi.org/10.7937/v8h6-8×67
+
 ### Usage
 
-1. **Prepare your data**: Place MRI scans (`.nii.gz` format) in `data/raw/`
+1. **Download and prepare data**: Download the dataset and place MRI scans (`.nii.gz` format) in `data/raw/`
 2. **Run notebooks in order**:
    - `01_data_understanding_and_eda.ipynb` - Explore the dataset
    - `02_preprocessing_and_augmentation.ipynb` - Convert 3D to 2D slices
@@ -59,13 +67,23 @@ pip install -r requirements.txt
 |-------|-------------|
 | **BaselineUNet** | Standard U-Net architecture for biomedical segmentation |
 | **ResNetUNet** | Enhanced U-Net with pre-trained ResNet backbone |
-| **TransUNet** | State-of-the-art combining Transformer encoder with U-Net decoder |
+| **TransUNet** | Initial CNN-based implementation (foundation for future Transformer integration) |
 
 ## Results
 
 ![Training Results](images/loss_plot.png)
 
+### Model Performance Comparison
+
+| Model Architecture | Test Dice Score |
+|-------------------|----------------|
+| **ResNetUNet** | **0.9634** |
+| **BaselineUNet** | 0.5059 |
+| **TransUNet** | 0.0686 |
+
 The **ResNetUNet** model achieved the highest performance with superior Dice similarity scores, demonstrating excellent segmentation accuracy across all tumor regions.
+
+> **Note:** The **TransUNet** implementation represents our initial CNN-based foundation, designed as a stepping stone toward incorporating full Vision Transformer components. While the current version achieves good training convergence, the simplified architecture (without self-attention mechanisms) explains the lower test performance - providing valuable insights for our planned evolution to a complete TransUNet implementation with proper transformer blocks.
 
 ## Project Structure
 
