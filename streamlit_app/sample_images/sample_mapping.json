@@ -1,7 +1,27 @@
 {
-  "Sample 1": "sample_1_image.npy",
-  "Sample 2": "sample_2_image.npy",
-  "Sample 3": "sample_3_image.npy",
-  "Sample 4": "sample_4_image.npy",
-  "Sample 5": "sample_5_image.npy"
+  "sample_1.png": {
+    "image_npy": "sample_1_image.npy",
+    "mask_npy": "sample_1_mask.npy",
+    "original_source": "BraTS-SSA-00182-000_slice_100_image.npy"
+  },
+  "sample_2.png": {
+    "image_npy": "sample_2_image.npy",
+    "mask_npy": "sample_2_mask.npy",
+    "original_source": "BraTS-SSA-00137-000_slice_126_image.npy"
+  },
+  "sample_3.png": {
+    "image_npy": "sample_3_image.npy",
+    "mask_npy": "sample_3_mask.npy",
+    "original_source": "BraTS-SSA-00150-000_slice_077_image.npy"
+  },
+  "sample_4.png": {
+    "image_npy": "sample_4_image.npy",
+    "mask_npy": "sample_4_mask.npy",
+    "original_source": "BraTS-SSA-00228-000_slice_086_image.npy"
+  },
+  "sample_5.png": {
+    "image_npy": "sample_5_image.npy",
+    "mask_npy": "sample_5_mask.npy",
+    "original_source": "BraTS-SSA-00137-000_slice_098_image.npy"
+  }
 }

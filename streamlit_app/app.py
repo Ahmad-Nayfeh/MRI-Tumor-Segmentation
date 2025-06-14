@@ -1,5 +1,5 @@
 # ===================================================================================
-#                           STREAMLIT APP: app.py (DEFINITIVE FINAL)
+#                           STREAMLIT APP: app.py (CORRECTED)
 # ===================================================================================
 import streamlit as st
 import os
@@ -9,8 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from streamlit_image_comparison import image_comparison
-from glob import glob
-import json  # Added for loading mapping
+import json
 
 # --- Add Project Root to Python Path ---
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -26,7 +25,6 @@ st.set_page_config(page_title="AI Brain Tumor Segmentation", page_icon="🧠", l
 # --- Define Paths ---
 MODELS_DIR = os.path.join(ROOT_DIR, 'models')
 SAMPLE_IMAGES_DIR = os.path.join(ROOT_DIR, 'streamlit_app', 'sample_images')
-PROCESSED_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'processed') # We need this now
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # --- Model Loading ---
@@ -38,143 +36,211 @@ def load_model(model_path, device):
     model.eval()
     return model
 
-# --- Inference Function (works on .npy paths or uploaded PIL images) ---
-def predict(model, image_input, device, is_uploaded_file=False):
-    """Runs the full inference pipeline."""
-    if is_uploaded_file:
-        # Preprocessing for a single-channel uploaded image
-        img = image_input.resize((240, 240)).convert('L')
-        img_np = np.array(img, dtype=np.float32)
-        max_val = np.max(img_np)
-        if max_val > 0:
-            img_np = img_np / max_val
-        img_4_channel = np.stack([img_np] * 4, axis=-1)
-        input_tensor = torch.from_numpy(img_4_channel).permute(2, 0, 1).unsqueeze(0).to(device)
-    else:
-        # Preprocessing for a 4-channel .npy file path
-        img_np = np.load(image_input)
-        input_tensor = torch.from_numpy(img_np).permute(2, 0, 1).unsqueeze(0).to(device)
-    
+# --- Inference Function ---
+def predict(model, npy_array, device):
+    """Runs the full inference pipeline on a 4-channel numpy array."""
+    input_tensor = torch.from_numpy(npy_array).permute(2, 0, 1).unsqueeze(0).to(device)
     with torch.no_grad():
         logits = model(input_tensor)
         pred_mask = (torch.sigmoid(logits) > 0.5).float()
-        
     return pred_mask.squeeze(0).cpu().numpy()
 
-# --- Load the winning model ---
-BEST_MODEL_NAME = 'ResNetUNet'
-model_path = os.path.join(MODELS_DIR, f'{BEST_MODEL_NAME}_best_model.pth')
+# --- Load the model ---
+model_path = os.path.join(MODELS_DIR, 'ResNetUNet_best_model.pth')
 model = load_model(model_path, DEVICE)
 
-# --- Load the correct sample mapping ---
-sample_png_files = sorted([f for f in os.listdir(SAMPLE_IMAGES_DIR) if f.endswith('.png') and '_mask' not in f])
-
-# Load the mapping from the JSON file created by your sample generation code
+# --- Load the sample mapping ---
 mapping_path = os.path.join(SAMPLE_IMAGES_DIR, 'sample_mapping.json')
 if os.path.exists(mapping_path):
     with open(mapping_path, 'r') as f:
-        sample_npy_map = json.load(f)
-    st.success(f"✅ Loaded sample mapping for {len(sample_npy_map)} samples")
+        sample_mapping = json.load(f)
 else:
-    st.error("❌ Sample mapping file not found! Please run your sample creation code first.")
-    sample_npy_map = {}
+    sample_mapping = {}
 
 # ===================================================================================
-#                                  STREAMLIT UI
+#                                    STREAMLIT UI
 # ===================================================================================
 st.title("🧠 AI-Powered Brain MRI Tumor Segmentation")
-st.markdown("""
-This application demonstrates state-of-the-art deep learning for brain tumor segmentation using ResNet-UNet architecture.
-Upload your own MRI scan or select from our curated samples to see the AI in action.
-""")
 
+# --- UI Sidebar ---
 st.sidebar.title("Controls")
-st.sidebar.markdown("---")
-selection_mode = st.sidebar.radio("Choose an option:", ("Select a Sample Image", "Upload Your Own Image"))
+selection_mode = st.sidebar.radio("Choose an option:", ("Select a Sample", "Upload Your Own .npy File"))
 
-input_image = None
-prediction_input = None
-is_upload = False
+input_display_image = None
+prediction_array = None
+ground_truth_mask = None
 
-if selection_mode == "Select a Sample Image":
-    if sample_npy_map:
-        selected_sample = st.sidebar.selectbox("Select sample:", sample_png_files)
+if selection_mode == "Select a Sample":
+    if sample_mapping:
+        # Get list of sample names (the PNG keys)
+        sample_names = list(sample_mapping.keys())
+        selected_sample = st.sidebar.selectbox("Select sample:", sample_names)
+
         if selected_sample:
-            input_image_path = os.path.join(SAMPLE_IMAGES_DIR, selected_sample)
-            input_image = Image.open(input_image_path)
-            # *** THE FIX: Use the corresponding .npy path for prediction ***
-            npy_filename = sample_npy_map.get(selected_sample.replace('.png', '_image.npy').replace('_display',''))
-            if npy_filename:
-                prediction_input = os.path.join(SAMPLE_IMAGES_DIR, npy_filename)
-                st.sidebar.success(f"✅ Using correct NPY file: {os.path.basename(prediction_input)}")
+            # Get the corresponding .npy filenames from the mapping
+            sample_info = sample_mapping[selected_sample]
+            image_npy_filename = sample_info["image_npy"]  # e.g., "sample_1_image.npy"
+            mask_npy_filename = sample_info["mask_npy"]    # e.g., "sample_1_mask.npy"
+            
+            # Load the actual .npy files
+            image_npy_path = os.path.join(SAMPLE_IMAGES_DIR, image_npy_filename)
+            mask_npy_path = os.path.join(SAMPLE_IMAGES_DIR, mask_npy_filename)
+            
+            if os.path.exists(image_npy_path) and os.path.exists(mask_npy_path):
+                # Load the 4-channel image for prediction
+                prediction_array = np.load(image_npy_path)
+                
+                # Load the ground truth mask
+                ground_truth_mask = np.load(mask_npy_path)
+                
+                # Create display image from T1c channel (channel 0)
+                display_slice = prediction_array[:, :, 0]  # T1c channel
+                # Normalize to 0-255 range
+                display_slice_norm = ((display_slice - display_slice.min()) / 
+                                    (display_slice.max() - display_slice.min()) * 255)
+                input_display_image = Image.fromarray(display_slice_norm.astype(np.uint8))
+                
+                st.sidebar.success(f"✅ Loaded {selected_sample}")
+                st.sidebar.info(f"📁 Using: {image_npy_filename}")
+                
             else:
-                st.sidebar.error(f"❌ No mapping found for {selected_sample}")
+                st.sidebar.error(f"❌ Data files not found for {selected_sample}")
+
     else:
-        st.sidebar.error("No sample mapping available. Please generate samples first.")
-        
-else:
-    uploaded_file = st.sidebar.file_uploader("Upload a 2D MRI scan...", type=["png", "jpg", "jpeg"])
+        st.sidebar.error("❌ Sample mapping file not found.")
+
+else:  # Upload Your Own .npy File
+    uploaded_file = st.sidebar.file_uploader(
+        "Upload a 4-channel MRI slice (.npy format)", 
+        type=["npy"],
+        help="The file should be a numpy array with shape (H, W, 4) containing 4 MRI channels"
+    )
+    
     if uploaded_file is not None:
-        input_image = Image.open(uploaded_file)
-        prediction_input = input_image
-        is_upload = True
-        st.sidebar.warning("⚠️ Note: Model performance is optimized for 4-channel MRI data. Predictions on single-channel uploads serve as a limited demonstration.")
-
-if input_image and prediction_input:
-    st.markdown("---")
-    st.subheader("Results")
-    
-    # Run prediction using the correct input type
-    with st.spinner("🧠 AI is analyzing the brain scan..."):
-        predicted_mask = predict(model, prediction_input, DEVICE, is_uploaded_file=is_upload)
-        pred_mask_pil = Image.fromarray((predicted_mask.squeeze() * 255).astype(np.uint8))
-    
-    st.info("💡 Drag the slider to compare the original image with the AI's prediction.")
-    image_comparison(img1=input_image, img2=pred_mask_pil, label1="Original Image", label2="Predicted Mask")
-    
-    st.markdown("### Detailed View")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.image(input_image, caption="Original Input Image", use_container_width=True)
-    with col2:
-        if selection_mode == "Select a Sample Image":
-            gt_path = os.path.join(SAMPLE_IMAGES_DIR, selected_sample.replace('.png', '_mask.png'))
-            if os.path.exists(gt_path):
-                st.image(Image.open(gt_path), caption="Ground Truth Mask", use_container_width=True)
+        try:
+            # Load the uploaded .npy file
+            prediction_array = np.load(uploaded_file)
+            
+            # Validate the shape
+            if len(prediction_array.shape) != 3 or prediction_array.shape[2] != 4:
+                st.sidebar.error(f"❌ Invalid shape: {prediction_array.shape}. Expected (H, W, 4)")
+                prediction_array = None
             else:
-                st.info("Ground truth not available")
-        else:
-            st.info("Ground truth not available for uploaded images")
-    with col3:
-        st.image(pred_mask_pil, caption=f"AI Prediction ({BEST_MODEL_NAME})", use_container_width=True)
+                # Create display image from T1c channel (channel 0)
+                display_slice = prediction_array[:, :, 0]
+                # Normalize to 0-255 range
+                display_slice_norm = ((display_slice - display_slice.min()) / 
+                                    (display_slice.max() - display_slice.min()) * 255)
+                input_display_image = Image.fromarray(display_slice_norm.astype(np.uint8))
+                
+                st.sidebar.success("✅ File uploaded successfully!")
+                st.sidebar.info(f"📊 Shape: {prediction_array.shape}")
+                
+        except Exception as e:
+            st.sidebar.error(f"❌ Error loading file: {str(e)}")
+            prediction_array = None
 
-    # Add some metrics or additional info
-    st.markdown("### Model Information")
-    col1, col2, col3 = st.columns(3)
+# --- Main Page Display ---
+if input_display_image is not None and prediction_array is not None:
+    st.markdown("---")
+    st.subheader("🔍 Analysis Results")
+
+    with st.spinner("🧠 AI is analyzing the brain scan..."):
+        predicted_mask_array = predict(model, prediction_array, DEVICE)
+        pred_mask_pil = Image.fromarray((predicted_mask_array.squeeze() * 255).astype(np.uint8))
+
+    # Create columns for better layout
+    col1, col2 = st.columns(2)
+    
     with col1:
-        st.metric("Model Architecture", "ResNet-UNet")
+        st.markdown("### 🔄 Interactive Comparison")
+        st.info("💡 Drag the slider to compare the original image with the AI's prediction.")
+        image_comparison(
+            img1=input_display_image, 
+            img2=pred_mask_pil, 
+            label1="Original MRI", 
+            label2="AI Prediction"
+        )
+    
     with col2:
-        st.metric("Input Channels", "4 (Multi-modal MRI)")
-    with col3:
-        st.metric("Output", "Binary Mask")
+        # Show ground truth if available (for sample images)
+        if ground_truth_mask is not None:
+            st.markdown("### ✅ Ground Truth Comparison")
+            ground_truth_pil = Image.fromarray(((ground_truth_mask > 0) * 255).astype(np.uint8))
+            image_comparison(
+                img1=pred_mask_pil,
+                img2=ground_truth_pil,
+                label1="AI Prediction",
+                label2="Ground Truth"
+            )
+        else:
+            st.markdown("### 📊 Prediction Statistics")
+            tumor_pixels = np.sum(predicted_mask_array > 0.5)
+            total_pixels = predicted_mask_array.size
+            tumor_percentage = (tumor_pixels / total_pixels) * 100
+            
+            st.metric("Tumor Area", f"{tumor_percentage:.2f}%")
+            st.metric("Tumor Pixels", f"{tumor_pixels:,}")
+            st.metric("Image Size", f"{prediction_array.shape[0]}×{prediction_array.shape[1]}")
+
+    # Add download button for predicted mask
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        # Convert prediction to downloadable format
+        pred_mask_download = (predicted_mask_array.squeeze() * 255).astype(np.uint8)
+        pred_mask_pil_download = Image.fromarray(pred_mask_download)
+        
+        # Convert PIL image to bytes for download
+        import io
+        img_buffer = io.BytesIO()
+        pred_mask_pil_download.save(img_buffer, format='PNG')
+        img_buffer.seek(0)
+        
+        st.download_button(
+            label="📥 Download Prediction",
+            data=img_buffer.getvalue(),
+            file_name="predicted_tumor_mask.png",
+            mime="image/png"
+        )
 
 else:
-    st.info("👈 Please select or upload an image in the sidebar to begin.")
+    # Welcome message when no file is selected
+    st.markdown("---")
+    st.info("👈 **Get Started:** Please select a sample image or upload your own .npy file in the sidebar to begin analysis.")
     
-    # Show some example results when no image is selected
-    st.markdown("### About This Application")
+    # Show some info about the app
+    st.markdown("### 🔬 About This Application")
     st.markdown("""
-    This brain tumor segmentation model was trained on multi-modal MRI data and achieves state-of-the-art performance:
+    This AI-powered tool uses a **ResNet-UNet architecture** to automatically segment brain tumors from MRI scans.
     
-    - **Architecture**: ResNet-UNet with skip connections
-    - **Input**: 4-channel MRI data (T1, T1c, T2, FLAIR)
-    - **Training Data**: BraTS dataset
-    - **Performance**: Optimized for accurate tumor boundary detection
+    **Features:**
+    - 🧠 Advanced deep learning model trained on medical imaging data
+    - 🔄 Interactive image comparison with slider control
+    - 📊 Detailed analysis statistics
+    - 📥 Downloadable prediction results
+    - ✅ Ground truth comparison for sample images
+    
+    **How to use:**
+    1. Select a pre-loaded sample from the sidebar, or
+    2. Upload your own 4-channel MRI data (.npy format)
+    3. View the AI's tumor segmentation results
+    4. Compare with ground truth (for samples) or download results
     """)
 
+# --- Sidebar Information ---
 st.sidebar.markdown("---")
+st.sidebar.markdown("### ℹ️ Model Information")
+st.sidebar.info(f"""
+**Architecture:** ResNet-UNet  
+**Device:** {DEVICE.upper()}  
+**Input:** 4-channel MRI (H×W×4)  
+**Output:** Binary tumor mask
+""")
+
+st.sidebar.markdown("### 🔬 Research Note")
 st.sidebar.info("""
-🔬 **Research Note**: This project benchmarks multiple architectures to find the optimal solution for brain tumor segmentation. 
+This project benchmarks multiple architectures to find the optimal solution for brain tumor segmentation. 
 The ResNet-UNet architecture demonstrated superior performance in our comparative analysis.
 """)
 
